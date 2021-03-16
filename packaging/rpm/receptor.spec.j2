@@ -2,6 +2,8 @@
 %global debug_package %{nil}
 %global __os_install_post %{_rpmconfigdir}/brp-compress
 
+%global receptorctl_root %{name}-%{version}/receptorctl
+
 Name:           receptor
 Version:        {{ version }}
 Release:        {{ release }}%{?dist}
@@ -36,12 +38,45 @@ Requires: receptorctl
 %description
 %{common_description}
 
+%package -n receptorctl
+Summary:   Command line utility for Receptor
+URL:       https://github.com/project-receptor/receptor/receptorctl
+BuildArch: noarch
+
+%if 0%{?rhel} == 7
+BuildRequires: python36
+BuildRequires: python36-setuptools
+Requires: python36
+Requires: python36-setuptools
+Requires: python36-dateutil
+Requires: python36-pyyaml
+%else
+BuildRequires: python3
+BuildRequires: python3-setuptools
+Requires: python3
+Requires: python3-setuptools
+Requires: python3-dateutil
+Requires: python3-click
+Requires: python3-pyyaml
+%endif
+
+%description -n receptorctl
+receptorctl is a command line utility for managing Receptor
+
 %prep
 %setup -q
 
+# For receptorctl
+echo %{version} > %{_builddir}/%{receptorctl_root}/.VERSION
+
 %build
+# For receptor
 go build -ldflags "-X main.version=%{version}" -o ./receptor cmd/receptor.go
 ./receptor --bash-completion > receptor.completion
+
+# For receptorctl
+cd %{_builddir}/%{receptorctl_root}
+python3 setup.py build
 
 %install
 install -m 0755 -vd                     %{buildroot}%{_bindir}
@@ -53,6 +88,16 @@ install -m 0644 -vp packaging/rpm/receptor.conf.example %{buildroot}%{_sysconfdi
 install -m 0755 -vd                     %{buildroot}%{_datadir}/bash-completion/completions
 install -m 0644 -vp receptor.completion %{buildroot}%{_datadir}/bash-completion/completions/receptor
 
+# For receptorctl
+cd %{_builddir}/%{receptorctl_root}
+python3 setup.py install --single-version-externally-managed -O1 --root=$RPM_BUILD_ROOT --record=INSTALLED_FILES
+PYTHONPATH=$RPM_BUILD_ROOT/usr/lib/python3.8/site-packages _RECEPTORCTL_COMPLETE=source_bash $RPM_BUILD_ROOT/usr/bin/receptorctl > %{_builddir}/%{receptorctl_root}/receptorctl-completion || true
+install -m 0755 -vd %{buildroot}%{_datadir}/bash-completion/completions
+install -m 0644 -vp %{_builddir}/%{receptorctl_root}/receptorctl-completion %{buildroot}%{_datadir}/bash-completion/completions/receptorctl
+
+%clean
+rm -rf $RPM_BUILD_ROOT
+
 %if %{with check}
 %check
 export PATH=$PATH:%{buildroot}%{_bindir}
@@ -60,7 +105,11 @@ SKIP_KUBE=1 go test ./... -p 1 -parallel=16 -count=1 -failfast
 %endif
 
 %files
-%{_bindir}/*
+%{_bindir}/receptor
 %{_datadir}/bash-completion/completions/receptor
 %{_sysconfdir}/receptor/receptor.conf.example
 %{_sysconfdir}/systemd/system/receptor@.service
+
+%files -n receptorctl -f %{_builddir}/%{receptorctl_root}/INSTALLED_FILES
+%{_datadir}/bash-completion/completions/receptorctl
+%defattr(-,root,root)

@@ -100,7 +100,7 @@ version:
 	@echo $(APPVER) > .VERSION
 	@echo ".VERSION created for $(APPVER)"
 
-SPECFILES = packaging/rpm/receptor.spec packaging/rpm/receptorctl.spec packaging/rpm/receptor-python-worker.spec
+SPECFILES = packaging/rpm/receptor.spec packaging/rpm/receptor-python-worker.spec
 
 specfiles: $(SPECFILES)
 
@@ -123,7 +123,7 @@ RECEPTOR_RPM = rpmbuild/RPMS/x86_64/receptor-$(VERSION)-$(RELEASE)$(DIST).$(ARCH
 RECEPTORCTL_RPM = rpmbuild/RPMS/noarch/receptorctl-$(VERSION)-$(RELEASE)$(DIST).noarch.rpm
 RECEPTOR_PYTHON_WORKER_RPM = rpmbuild/RPMS/noarch/receptor-python-worker-$(VERSION)-$(RELEASE)$(DIST).noarch.rpm
 
-RPMS = $(RECEPTOR_RPM) $(RECEPTORCTL_RPM) $(RECEPTOR_PYTHON_WORKER_RPM)
+RPMS = $(RECEPTOR_RPM) $(RECEPTOR_PYTHON_WORKER_RPM)
 
 $(RECEPTOR_RPM): packaging/rpm/receptor.spec $(RPMSOURCETAR)
 	rpmbuild -ba packaging/rpm/receptor.spec --without check -D "%_topdir $$PWD/rpmbuild"
